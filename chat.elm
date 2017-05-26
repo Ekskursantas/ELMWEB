@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
+import Json.Encode as Encode
 import List
 import WebSocket
 
@@ -51,6 +52,7 @@ type Msg
     | UpdateUserMessage String
     | NewChatMessage String
     | PostLoginInput String
+    | MakeLoginPrefix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -59,19 +61,30 @@ update msg model =
         PostLoginInput user ->
             { model | login = user } ! []
 
+        MakeLoginPrefix ->
+            let
+                message =
+                    Encode.object [ ( "command", Encode.string "login" ), ( "content", Encode.string model.login ) ]
+            in
+            Debug.log (toString message)
+                { model | userMessage = "" }
+                ! [ WebSocket.send "ws://localhost:3000/" (Encode.encode 0 message) ]
+
         PostChatMessage ->
             let
                 message =
-                    model.login ++ ":: " ++ model.userMessage
+                    Encode.object [ ( "command", Encode.string "send" ), ( "content", Encode.string model.userMessage ) ]
             in
-            { model | userMessage = "" }
-                ! [ WebSocket.send "ws://localhost:3000/" message ]
+            Debug.log (toString message)
+                { model | userMessage = "" }
+                ! [ WebSocket.send "ws://localhost:3000/" (Encode.encode 0 message) ]
 
         UpdateUserMessage message ->
             { model | userMessage = message } ! []
 
         NewChatMessage message ->
-            { model | chatMessage = message :: model.chatMessage } ! []
+            { model | chatMessage = message :: model.chatMessage }
+                ! []
 
 
 
@@ -81,21 +94,26 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ input
-            [ placeholder "username..."
-            , autofocus True
-            , value model.login
-            , onInput PostLoginInput
+        [ div []
+            [ input
+                [ placeholder "username..."
+                , autofocus True
+                , value model.login
+                , onInput PostLoginInput
+                ]
+                []
+            , button [ onClick MakeLoginPrefix ] [ text "Login" ]
             ]
-            []
-        , input
-            [ placeholder "message..."
-            , autofocus False
-            , value model.userMessage
-            , onInput UpdateUserMessage
+        , div []
+            [ input
+                [ placeholder "message..."
+                , autofocus False
+                , value model.userMessage
+                , onInput UpdateUserMessage
+                ]
+                []
+            , button [ onClick PostChatMessage ] [ text "Send" ]
             ]
-            []
-        , button [ onClick PostChatMessage ] [ text "Submit" ]
         , div []
             [ li []
                 [ writeDownMessages model ]
@@ -115,9 +133,16 @@ deComp model message =
     let
         fixedContent =
             fixString (Decode.decodeString (Decode.field "content" Decode.string) message)
+
+        fixedCommand =
+            fixString (Decode.decodeString (Decode.field "command" Decode.string) message)
     in
     li []
-        [ text fixedContent ]
+        [ if fixedCommand == "login" then
+            text (fixedContent ++ " has logged in!")
+          else
+            text fixedContent
+        ]
 
 
 fixString : Result String String -> String

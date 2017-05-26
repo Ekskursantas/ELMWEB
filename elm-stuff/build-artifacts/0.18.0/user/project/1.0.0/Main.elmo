@@ -8,6 +8,11 @@ var _user$project$Main$fixString = function (message) {
 };
 var _user$project$Main$deComp = F2(
 	function (model, message) {
+		var fixedCommand = _user$project$Main$fixString(
+			A2(
+				_elm_lang$core$Json_Decode$decodeString,
+				A2(_elm_lang$core$Json_Decode$field, 'command', _elm_lang$core$Json_Decode$string),
+				message));
 		var fixedContent = _user$project$Main$fixString(
 			A2(
 				_elm_lang$core$Json_Decode$decodeString,
@@ -18,7 +23,8 @@ var _user$project$Main$deComp = F2(
 			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: _elm_lang$html$Html$text(fixedContent),
+				_0: _elm_lang$core$Native_Utils.eq(fixedCommand, 'login') ? _elm_lang$html$Html$text(
+					A2(_elm_lang$core$Basics_ops['++'], fixedContent, ' has logged in!')) : _elm_lang$html$Html$text(fixedContent),
 				_1: {ctor: '[]'}
 			});
 	});
@@ -42,19 +48,74 @@ var _user$project$Main$update = F2(
 						model,
 						{login: _p1._0}),
 					{ctor: '[]'});
-			case 'PostChatMessage':
-				var message = A2(
-					_elm_lang$core$Basics_ops['++'],
-					model.login,
-					A2(_elm_lang$core$Basics_ops['++'], ':: ', model.userMessage));
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					_elm_lang$core$Native_Utils.update(
-						model,
-						{userMessage: ''}),
+			case 'MakeLoginPrefix':
+				var message = _elm_lang$core$Json_Encode$object(
 					{
 						ctor: '::',
-						_0: A2(_elm_lang$websocket$WebSocket$send, 'ws://localhost:3000/', message),
+						_0: {
+							ctor: '_Tuple2',
+							_0: 'command',
+							_1: _elm_lang$core$Json_Encode$string('login')
+						},
+						_1: {
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'content',
+								_1: _elm_lang$core$Json_Encode$string(model.login)
+							},
+							_1: {ctor: '[]'}
+						}
+					});
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					A2(
+						_elm_lang$core$Debug$log,
+						_elm_lang$core$Basics$toString(message),
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{userMessage: ''})),
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$websocket$WebSocket$send,
+							'ws://localhost:3000/',
+							A2(_elm_lang$core$Json_Encode$encode, 0, message)),
+						_1: {ctor: '[]'}
+					});
+			case 'PostChatMessage':
+				var message = _elm_lang$core$Json_Encode$object(
+					{
+						ctor: '::',
+						_0: {
+							ctor: '_Tuple2',
+							_0: 'command',
+							_1: _elm_lang$core$Json_Encode$string('send')
+						},
+						_1: {
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'content',
+								_1: _elm_lang$core$Json_Encode$string(model.userMessage)
+							},
+							_1: {ctor: '[]'}
+						}
+					});
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					A2(
+						_elm_lang$core$Debug$log,
+						_elm_lang$core$Basics$toString(message),
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{userMessage: ''})),
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$websocket$WebSocket$send,
+							'ws://localhost:3000/',
+							A2(_elm_lang$core$Json_Encode$encode, 0, message)),
 						_1: {ctor: '[]'}
 					});
 			case 'UpdateUserMessage':
@@ -92,6 +153,7 @@ var _user$project$Main$ChatMessage = F2(
 	function (a, b) {
 		return {command: a, content: b};
 	});
+var _user$project$Main$MakeLoginPrefix = {ctor: 'MakeLoginPrefix'};
 var _user$project$Main$PostLoginInput = function (a) {
 	return {ctor: 'PostLoginInput', _0: a};
 };
@@ -112,80 +174,109 @@ var _user$project$Main$view = function (model) {
 		{
 			ctor: '::',
 			_0: A2(
-				_elm_lang$html$Html$input,
+				_elm_lang$html$Html$div,
+				{ctor: '[]'},
 				{
 					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$placeholder('username...'),
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$autofocus(true),
-						_1: {
+					_0: A2(
+						_elm_lang$html$Html$input,
+						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$value(model.login),
+							_0: _elm_lang$html$Html_Attributes$placeholder('username...'),
 							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$PostLoginInput),
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				},
-				{ctor: '[]'}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$input,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$placeholder('message...'),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$autofocus(false),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$value(model.userMessage),
+								_0: _elm_lang$html$Html_Attributes$autofocus(true),
 								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$UpdateUserMessage),
-									_1: {ctor: '[]'}
+									_0: _elm_lang$html$Html_Attributes$value(model.login),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$PostLoginInput),
+										_1: {ctor: '[]'}
+									}
 								}
 							}
-						}
-					},
-					{ctor: '[]'}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$button,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$PostChatMessage),
-							_1: {ctor: '[]'}
 						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Submit'),
-							_1: {ctor: '[]'}
-						}),
+						{ctor: '[]'}),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$div,
-							{ctor: '[]'},
+							_elm_lang$html$Html$button,
 							{
 								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$li,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _user$project$Main$writeDownMessages(model),
-										_1: {ctor: '[]'}
-									}),
+								_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$MakeLoginPrefix),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Login'),
 								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
 					}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$input,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$placeholder('message...'),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$autofocus(false),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$value(model.userMessage),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$UpdateUserMessage),
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							},
+							{ctor: '[]'}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$button,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$PostChatMessage),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('Send'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$li,
+								{ctor: '[]'},
+								{
+									ctor: '::',
+									_0: _user$project$Main$writeDownMessages(model),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
 				}
 			}
 		});
